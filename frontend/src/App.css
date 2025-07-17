@@ -1,0 +1,203 @@
+/* General App Layout */
+.App {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #ffffff;
+    color: #333;
+}
+
+.App-header {
+    background-color: #007bff;
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.App-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.logout-button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.App-main {
+    padding: 2rem;
+}
+
+/* Cards for components */
+.component-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Auth Forms */
+.auth-container {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #007bff;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.auth-form button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.auth-form button:hover {
+    background-color: #0056b3;
+}
+
+.auth-form p {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.auth-form p span {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* Dashboard Layout */
+.dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard h2 {
+    color: #007bff;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+/* Wallet & Transfer */
+.wallet-container .balance {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #28a745;
+    margin: 0.5rem 0 1.5rem;
+}
+
+.wallet-actions, .transfer-container form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.wallet-actions input, .transfer-container input {
+    flex-grow: 1;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.wallet-actions button, .transfer-container button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.wallet-actions button:first-of-type {
+    background-color: #28a745; /* Deposit */
+}
+.wallet-actions button:last-of-type {
+    background-color: #ffc107; /* Withdraw */
+    color: #333;
+}
+.transfer-container button {
+    background-color: #17a2b8; /* Transfer */
+}
+
+/* Transaction History */
+.history-container ul {
+    list-style: none;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.tx-item {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+    align-items: center;
+}
+
+.tx-item:last-child {
+    border-bottom: none;
+}
+
+.tx-type {
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+.tx-type.tx-deposit, .tx-type.tx-transfer_in { color: #28a745; }
+.tx-type.tx-withdrawal, .tx-type.tx-transfer_out { color: #dc3545; }
+
+.tx-amount {
+    font-weight: 500;
+}
+
+.tx-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Helper classes */
+.error-message {
+    color: #dc3545;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.success-message {
+    color: #28a745;
+    margin-top: 1rem;
+    text-align: center;
+}

@@ -1,0 +1,99 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+    depends_on:
+      - users-service
+      - wallet-service
+      - transactions-service
+      - transfer-service
+
+  users-service:
+    build: ./services/users-service
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: mysql
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: digital_wallet
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  wallet-service:
+    build: ./services/wallet-service
+    ports:
+      - "3002:3001"
+    environment:
+      DB_HOST: mysql
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: digital_wallet
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  transactions-service:
+    build: ./services/transactions-service
+    ports:
+      - "3003:3001"
+    environment:
+      DB_HOST: mysql
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: digital_wallet
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  transfer-service:
+    build: ./services/transfer-service
+    ports:
+      - "3004:3001"
+    environment:
+      USERS_SERVICE_URL: http://users-service:3001
+      WALLET_SERVICE_URL: http://wallet-service:3001
+      TRANSACTIONS_SERVICE_URL: http://transactions-service:3001
+    networks:
+      - app-network
+    depends_on:
+      - users-service
+      - wallet-service
+      - transactions-service
+
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: 'digital_wallet'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'rootpassword'
+    ports:
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
