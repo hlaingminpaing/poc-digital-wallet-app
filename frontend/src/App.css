@@ -10,9 +10,10 @@
     color: white;
     padding: 1rem 2rem;
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Centered the title */
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative; /* Added for positioning context */
 }
 
 .App-header h1 {
@@ -27,6 +28,8 @@
     padding: 0.5rem 1rem;
     border-radius: 5px;
     cursor: pointer;
+    position: absolute; /* Positioned relative to the header */
+    right: 2rem; /* Aligned to the right */
 }
 
 .App-main {

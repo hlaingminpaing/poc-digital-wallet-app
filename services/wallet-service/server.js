@@ -2,14 +2,14 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const axios = require('axios');
 
 const app = express();
-const port = 3001; // All services will run on 3001 inside the container
+const port = 3001;
 
 app.use(bodyParser.json());
 app.use(cors());
 
-// Database connection settings from environment variables
 const dbConfig = {
   host: process.env.DB_HOST || 'mysql',
   user: process.env.DB_USER || 'user',
@@ -21,8 +21,8 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+const TRANSACTIONS_SERVICE_URL = 'http://transactions-service:3001/transactions';
 
-// Helper function to check DB connection
 async function checkDbConnection() {
     try {
         const connection = await pool.getConnection();
@@ -30,11 +30,16 @@ async function checkDbConnection() {
         connection.release();
     } catch (error) {
         console.error('Wallet service failed to connect to database:', error);
-        setTimeout(checkDbConnection, 5000); // Retry
+        setTimeout(checkDbConnection, 5000);
     }
 }
 
-// API endpoint to get wallet balance
+// Helper to record a transaction
+const recordTransaction = (userId, type, amount) => {
+    axios.post(TRANSACTIONS_SERVICE_URL, { userId, type, amount })
+        .catch(err => console.error(`Failed to record ${type} transaction:`, err.message));
+};
+
 app.get('/balance/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
@@ -49,7 +54,6 @@ app.get('/balance/:userId', async (req, res) => {
   }
 });
 
-// API endpoint for depositing funds
 app.post('/deposit', async (req, res) => {
   const { userId, amount } = req.body;
   const depositAmount = parseFloat(amount);
@@ -60,6 +64,7 @@ app.post('/deposit', async (req, res) => {
 
   try {
     await pool.query('UPDATE wallets SET balance = balance + ? WHERE userId = ?', [depositAmount, userId]);
+    recordTransaction(userId, 'deposit', depositAmount); // Record transaction
     res.status(200).json({ message: 'Deposit successful.' });
   } catch (error) {
     console.error('Error during deposit:', error);
@@ -67,7 +72,6 @@ app.post('/deposit', async (req, res) => {
   }
 });
 
-// API endpoint for withdrawing funds
 app.post('/withdraw', async (req, res) => {
   const { userId, amount } = req.body;
   const withdrawAmount = parseFloat(amount);
@@ -96,6 +100,7 @@ app.post('/withdraw', async (req, res) => {
     await connection.query('UPDATE wallets SET balance = balance - ? WHERE userId = ?', [withdrawAmount, userId]);
     await connection.commit();
     
+    recordTransaction(userId, 'withdrawal', withdrawAmount); // Record transaction
     res.status(200).json({ message: 'Withdrawal successful.' });
   } catch (error) {
     await connection.rollback();
@@ -106,7 +111,6 @@ app.post('/withdraw', async (req, res) => {
   }
 });
 
-// Internal endpoint for transfer service to update balances
 app.post('/wallets/update-balance', async (req, res) => {
     const { fromUserId, toUserId, amount } = req.body;
     const transferAmount = parseFloat(amount);
@@ -119,7 +123,6 @@ app.post('/wallets/update-balance', async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        // Lock sender's wallet and check balance
         const [senderWallet] = await connection.query('SELECT balance FROM wallets WHERE userId = ? FOR UPDATE', [fromUserId]);
         if (senderWallet.length === 0) {
             await connection.rollback();
@@ -130,9 +133,7 @@ app.post('/wallets/update-balance', async (req, res) => {
             return res.status(400).json({ message: 'Insufficient funds.' });
         }
 
-        // Debit sender
         await connection.query('UPDATE wallets SET balance = balance - ? WHERE userId = ?', [transferAmount, fromUserId]);
-        // Credit receiver
         await connection.query('UPDATE wallets SET balance = balance + ? WHERE userId = ?', [transferAmount, toUserId]);
 
         await connection.commit();
@@ -145,7 +146,6 @@ app.post('/wallets/update-balance', async (req, res) => {
         connection.release();
     }
 });
-
 
 app.listen(port, () => {
   console.log(`Wallet service listening at http://localhost:${port}`);
