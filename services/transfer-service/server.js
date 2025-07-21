@@ -4,14 +4,14 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const port = 3001;
+const port = 3004;
 
 app.use(bodyParser.json());
 app.use(cors());
 
 const USERS_SERVICE_URL = process.env.USERS_SERVICE_URL || 'http://users-service:3001';
-const WALLET_SERVICE_URL = process.env.WALLET_SERVICE_URL || 'http://wallet-service:3001';
-const TRANSACTIONS_SERVICE_URL = process.env.TRANSACTIONS_SERVICE_URL || 'http://transactions-service:3001';
+const WALLET_SERVICE_URL = process.env.WALLET_SERVICE_URL || 'http://wallet-service:3002';
+const TRANSACTIONS_SERVICE_URL = process.env.TRANSACTIONS_SERVICE_URL || 'http://transactions-service:3003';
 
 app.post('/transfer', async (req, res) => {
     const { fromUserId, toUserEmail, amount } = req.body;

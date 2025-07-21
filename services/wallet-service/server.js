@@ -5,7 +5,7 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const port = 3001;
+const port = 3002;
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -21,7 +21,7 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
-const TRANSACTIONS_SERVICE_URL = 'http://transactions-service:3001/transactions';
+const TRANSACTIONS_SERVICE_URL = 'http://transactions-service:3003/transactions';
 
 async function checkDbConnection() {
     try {

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transfer-service-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transfer-service
+  template:
+    metadata:
+      labels:
+        app: transfer-service
+    spec:
+      containers:
+      - name: transfer-service
+        image: hlaingminpaing/poc-digital-wallet-app:transfer-service
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3004
+        env:
+        - name: USERS_SERVICE_URL
+          value: "http://users-service:3001"
+        - name: WALLET_SERVICE_URL
+          value: "http://wallet-service:3002"
+        - name: TRANSACTIONS_SERVICE_URL
+          value: "http://transactions-service:3003"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transfer-service
+spec:
+  selector:
+    app: transfer-service
+  ports:
+    - protocol: TCP
+      port: 3004
+      targetPort: 3004
+  type: ClusterIP

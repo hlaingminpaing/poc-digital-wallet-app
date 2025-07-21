@@ -1,5 +1,6 @@
 services:
   frontend:
+    image: hlaingminpaing/poc-digital-wallet-app:frontend
     build: ./frontend
     ports:
       - "3000:80"
@@ -12,6 +13,7 @@ services:
       - transfer-service
 
   users-service:
+    image: hlaingminpaing/poc-digital-wallet-app:users-service
     build: ./services/users-service
     ports:
       - "3001:3001"
@@ -27,9 +29,10 @@ services:
         condition: service_healthy
 
   wallet-service:
+    image: hlaingminpaing/poc-digital-wallet-app:wallet-service
     build: ./services/wallet-service
     ports:
-      - "3002:3001"
+      - "3002:3002"
     environment:
       DB_HOST: mysql
       DB_USER: user
@@ -42,9 +45,10 @@ services:
         condition: service_healthy
 
   transactions-service:
+    image: hlaingminpaing/poc-digital-wallet-app:transactions-service
     build: ./services/transactions-service
     ports:
-      - "3003:3001"
+      - "3003:3003"
     environment:
       DB_HOST: mysql
       DB_USER: user
@@ -57,13 +61,14 @@ services:
         condition: service_healthy
 
   transfer-service:
+    image: hlaingminpaing/poc-digital-wallet-app:transfer-service
     build: ./services/transfer-service
     ports:
-      - "3004:3001"
+      - "3004:3004"
     environment:
       USERS_SERVICE_URL: http://users-service:3001
-      WALLET_SERVICE_URL: http://wallet-service:3001
-      TRANSACTIONS_SERVICE_URL: http://transactions-service:3001
+      WALLET_SERVICE_URL: http://wallet-service:3002
+      TRANSACTIONS_SERVICE_URL: http://transactions-service:3003
     networks:
       - app-network
     depends_on:
