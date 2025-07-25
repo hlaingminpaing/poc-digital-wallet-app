@@ -1,5 +1,21 @@
 stages:
   - test
+  - build
+  - deploy
+
+variables:
+  # Use the official Docker image.
+  IMAGE: docker:24.0.5
+  # Use the Docker-in-Docker driver.
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Define the image name prefix. This will be prepended with the service name.
+  # Example: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+  IMAGE_NAME_PREFIX: $CI_REGISTRY_IMAGE
+
+# ==============================================================================
+# >> TEST STAGE <<
+# ==============================================================================
 
 .test_template: &test_definition
   stage: test
@@ -8,37 +24,137 @@ stages:
     - npm install
     - npm test
 
-frontend:
+test-frontend:
   <<: *test_definition
-  variables:
-    npm_config_prefix: frontend/node_modules
   before_script:
     - cd frontend
 
-users-service:
+test-users-service:
   <<: *test_definition
-  variables:
-    npm_config_prefix: services/users-service/node_modules
   before_script:
     - cd services/users-service
 
-transactions-service:
+test-transactions-service:
   <<: *test_definition
-  variables:
-    npm_config_prefix: services/transactions-service/node_modules
   before_script:
     - cd services/transactions-service
 
-transfer-service:
+test-transfer-service:
   <<: *test_definition
-  variables:
-    npm_config_prefix: services/transfer-service/node_modules
   before_script:
     - cd services/transfer-service
 
-wallet-service:
+test-wallet-service:
   <<: *test_definition
-  variables:
-    npm_config_prefix: services/wallet-service/node_modules
   before_script:
     - cd services/wallet-service
+
+# ==============================================================================
+# >> BUILD STAGE <<
+# ==============================================================================
+
+.build_template: &build_definition
+  stage: build
+  image: ${IMAGE}
+  services:
+    - name: ${IMAGE}-dind
+      alias: docker
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    # The built image is not pushed here. It's pushed in the deploy stage.
+
+build-frontend:
+  <<: *build_definition
+  variables:
+    SERVICE_NAME: frontend
+  before_script:
+    - cd frontend
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+
+build-users-service:
+  <<: *build_definition
+  variables:
+    SERVICE_NAME: users-service
+  before_script:
+    - cd services/users-service
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+
+build-transactions-service:
+  <<: *build_definition
+  variables:
+    SERVICE_NAME: transactions-service
+  before_script:
+    - cd services/transactions-service
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+
+build-transfer-service:
+  <<: *build_definition
+  variables:
+    SERVICE_NAME: transfer-service
+  before_script:
+    - cd services/transfer-service
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+
+build-wallet-service:
+  <<: *build_definition
+  variables:
+    SERVICE_NAME: wallet-service
+  before_script:
+    - cd services/wallet-service
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+
+# ==============================================================================
+# >> DEPLOY STAGE <<
+# ==============================================================================
+
+.deploy_template: &deploy_definition
+  stage: deploy
+  image: ${IMAGE}
+  services:
+    - name: ${IMAGE}-dind
+      alias: docker
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker push "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}"
+    - docker tag "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:latest"
+    - docker push "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:latest"
+
+deploy-frontend:
+  <<: *deploy_definition
+  variables:
+    SERVICE_NAME: frontend
+
+deploy-users-service:
+  <<: *deploy_definition
+  variables:
+    SERVICE_NAME: users-service
+
+deploy-transactions-service:
+  <<: *deploy_definition
+  variables:
+    SERVICE_NAME: transactions-service
+
+deploy-transfer-service:
+  <<: *deploy_definition
+  variables:
+    SERVICE_NAME: transfer-service
+
+deploy-wallet-service:
+  <<: *deploy_definition
+  variables:
+    SERVICE_NAME: wallet-service
