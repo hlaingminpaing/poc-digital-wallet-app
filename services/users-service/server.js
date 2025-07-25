@@ -2,12 +2,35 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const client = require('prom-client');
 
 const app = express();
 const port = 3001;
 
+// Prometheus metrics setup
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestDurationMicroseconds = new client.Histogram({
+  name: 'http_request_duration_ms',
+  help: 'Duration of HTTP requests in ms',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [50, 100, 200, 300, 400, 500, 750, 1000, 2000]
+});
+register.registerMetric(httpRequestDurationMicroseconds);
+
 app.use(bodyParser.json());
 app.use(cors());
+
+// Middleware to measure request duration
+app.use((req, res, next) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ route: req.path, code: res.statusCode, method: req.method });
+  });
+  next();
+});
+
 
 const dbConfig = {
   host: process.env.DB_HOST || 'mysql',
@@ -156,6 +179,11 @@ app.get('/users/validate', async (req, res) => {
     }
 });
 
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 if (require.main === module) {
   app.listen(port, () => {

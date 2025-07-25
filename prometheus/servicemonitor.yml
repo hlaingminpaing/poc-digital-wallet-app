@@ -1,0 +1,60 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: users-service-monitor
+  labels:
+    # This label is used by the values.yaml to select this monitor.
+    app: digital-wallet-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: users-service
+  endpoints:
+  - port: "http" # Assuming the service port is named 'http'. If not, change to the correct name.
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: wallet-service-monitor
+  labels:
+    app: digital-wallet-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: wallet-service
+  endpoints:
+  - port: "http"
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: transactions-service-monitor
+  labels:
+    app: digital-wallet-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: transactions-service
+  endpoints:
+  - port: "http"
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: transfer-service-monitor
+  labels:
+    app: digital-wallet-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: transfer-service
+  endpoints:
+  - port: "http"
+    path: /metrics
+    interval: 15s

@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: digital-wallet-alert-rules
+  labels:
+    # This label is used by the values.yaml to select these rules.
+    app: digital-wallet-monitoring
+spec:
+  groups:
+  - name: digital-wallet.rules
+    rules:
+    - alert: ServiceDown
+      expr: up == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Service {{ $labels.job }} is down."
+        description: "Prometheus has been unable to scrape the {{ $labels.job }} service for over 1 minute."
+
+    - alert: HighRequestLatency
+      expr: (rate(http_request_duration_ms_sum[5m]) / rate(http_request_duration_ms_count[5m])) > 500
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High request latency on {{ $labels.job }}."
+        description: "The 5-minute average request latency for {{ $labels.job }} is over 500ms."

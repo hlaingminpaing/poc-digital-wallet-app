@@ -2,12 +2,34 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const axios = require('axios');
+const client = require('prom-client');
 
 const app = express();
 const port = 3004;
 
+// Prometheus metrics setup
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestDurationMicroseconds = new client.Histogram({
+  name: 'http_request_duration_ms',
+  help: 'Duration of HTTP requests in ms',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [50, 100, 200, 300, 400, 500, 750, 1000, 2000]
+});
+register.registerMetric(httpRequestDurationMicroseconds);
+
 app.use(bodyParser.json());
 app.use(cors());
+
+// Middleware to measure request duration
+app.use((req, res, next) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ route: req.path, code: res.statusCode, method: req.method });
+  });
+  next();
+});
 
 const USERS_SERVICE_URL = process.env.USERS_SERVICE_URL || 'http://users-service:3001';
 const WALLET_SERVICE_URL = process.env.WALLET_SERVICE_URL || 'http://wallet-service:3002';
@@ -82,6 +104,12 @@ app.post('/transfer', async (req, res) => {
         console.error('Transfer failed:', error.message);
         res.status(500).json({ message: 'An unexpected error occurred during the transfer.' });
     }
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 if (require.main === module) {

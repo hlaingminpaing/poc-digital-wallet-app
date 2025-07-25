@@ -42,7 +42,8 @@ spec:
   selector:
     app: users-service
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 3001
       targetPort: 3001
   type: ClusterIP

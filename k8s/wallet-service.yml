@@ -42,7 +42,8 @@ spec:
   selector:
     app: wallet-service
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 3002
       targetPort: 3002
   type: ClusterIP

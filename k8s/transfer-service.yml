@@ -34,7 +34,8 @@ spec:
   selector:
     app: transfer-service
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 3004
       targetPort: 3004
   type: ClusterIP

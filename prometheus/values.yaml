@@ -1,0 +1,62 @@
+# This values.yaml file configures the kube-prometheus-stack to discover
+# the custom ServiceMonitors and PrometheusRules we created.
+
+prometheus:
+  prometheusSpec:
+    # These selectors tell Prometheus to find any ServiceMonitor or PodMonitor
+    # resources that have the label "app: digital-wallet-monitoring".
+    serviceMonitorSelector:
+      matchLabels:
+        app: digital-wallet-monitoring
+    podMonitorSelector:
+      matchLabels:
+        app: digital-wallet-monitoring
+    
+    # This selector tells Prometheus to find any PrometheusRule resources
+    # that have the label "app: digital-wallet-monitoring".
+    ruleSelector:
+      matchLabels:
+        app: digital-wallet-monitoring
+
+    # Enable persistent storage for Prometheus data.
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+# You can add other customizations here, for example:
+grafana:
+  enabled: true
+  # Enable persistent storage for Grafana dashboards and configuration.
+  persistence:
+    enabled: true
+    storageClassName: "gp3"
+    size: 10Gi
+
+alertmanager:
+  enabled: true
+  # Example: configure a default receiver to a Slack channel
+  # config:
+  #   global:
+  #     resolve_timeout: 5m
+  #   receivers:
+  #   - name: 'null'
+  #   - name: 'slack-notifications'
+  #     slack_configs:
+  #     - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+  #       channel: '#alerts'
+  #       send_resolved: true
+  #   route:
+  #     group_by: ['job']
+  #     group_wait: 30s
+  #     group_interval: 5m
+  #     repeat_interval: 12h
+  #     receiver: 'slack-notifications'
+  #     routes:
+  #     - receiver: 'null'
+  #       match:
+  #         alertname: Watchdog

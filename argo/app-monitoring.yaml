@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: 'YOUR_GIT_REPOSITORY_URL' # <-- IMPORTANT: Replace with your Git repo URL
+    targetRevision: HEAD
+    path: prometheus # This points to the directory containing our Helm values and CRDs
+
+    # We are defining this as a Helm application
+    helm:
+      # Use the values file from our Git repository
+      valueFiles:
+        - values.yaml
+      
+      # Define the chart details
+      chart: kube-prometheus-stack
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: "58.0.0" # Pinning to a specific chart version is a good practice
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring # Deploy the monitoring stack into its own namespace
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+  # Ignore differences in the CRDs that the Helm chart manages.
+  # This is a common requirement for the kube-prometheus-stack.
+  ignoreDifferences:
+  - group: "apiextensions.k8s.io"
+    kind: "CustomResourceDefinition"
+    jsonPointers:
+    - /spec/conversion/webhook/clientConfig/caBundle
+    - /status
