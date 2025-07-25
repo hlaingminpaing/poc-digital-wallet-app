@@ -1,0 +1,44 @@
+stages:
+  - test
+
+.test_template: &test_definition
+  stage: test
+  image: node:18
+  script:
+    - npm install
+    - npm test
+
+frontend:
+  <<: *test_definition
+  variables:
+    npm_config_prefix: frontend/node_modules
+  before_script:
+    - cd frontend
+
+users-service:
+  <<: *test_definition
+  variables:
+    npm_config_prefix: services/users-service/node_modules
+  before_script:
+    - cd services/users-service
+
+transactions-service:
+  <<: *test_definition
+  variables:
+    npm_config_prefix: services/transactions-service/node_modules
+  before_script:
+    - cd services/transactions-service
+
+transfer-service:
+  <<: *test_definition
+  variables:
+    npm_config_prefix: services/transfer-service/node_modules
+  before_script:
+    - cd services/transfer-service
+
+wallet-service:
+  <<: *test_definition
+  variables:
+    npm_config_prefix: services/wallet-service/node_modules
+  before_script:
+    - cd services/wallet-service

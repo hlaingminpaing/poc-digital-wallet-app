@@ -147,7 +147,11 @@ app.post('/wallets/update-balance', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-  console.log(`Wallet service listening at http://localhost:${port}`);
-  checkDbConnection();
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Wallet service listening at http://localhost:${port}`);
+    checkDbConnection();
+  });
+}
+
+module.exports = { app, pool };

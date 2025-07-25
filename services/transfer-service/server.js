@@ -84,6 +84,10 @@ app.post('/transfer', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Transfer service listening at http://localhost:${port}`);
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Transfer service listening at http://localhost:${port}`);
+    });
+}
+
+module.exports = app;

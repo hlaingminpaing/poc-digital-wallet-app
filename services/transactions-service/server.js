@@ -86,7 +86,11 @@ app.get('/history/:userId', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Transactions service listening at http://localhost:${port}`);
-  initializeDatabase();
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Transactions service listening at http://localhost:${port}`);
+    initializeDatabase();
+  });
+}
+
+module.exports = { app, pool };
