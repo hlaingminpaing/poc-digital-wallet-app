@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'YOUR_GIT_REPOSITORY_URL' # <-- IMPORTANT: Replace with your Git repo URL
+    repoURL: 'https://github.com/hlaingminpaing/poc-digital-wallet-app.git' # <-- IMPORTANT: Replace with your Git repo URL
     targetRevision: HEAD
     path: prometheus # This points to the directory containing our Helm values and CRDs
 

@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'YOUR_GIT_REPOSITORY_URL' # <-- IMPORTANT: Replace with your Git repo URL
+    repoURL: 'https://github.com/hlaingminpaing/poc-digital-wallet-app.git' # <-- IMPORTANT: Replace with your Git repo URL
     path: argo
     targetRevision: HEAD
   destination:
