@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: wallet-service
-        image: hlaingminpaing/poc-digital-wallet-app:wallet-service
+        image: hlaingminpaing/wallet-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3002

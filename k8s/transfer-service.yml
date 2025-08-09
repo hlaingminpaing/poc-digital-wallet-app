@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: transfer-service
-        image: hlaingminpaing/poc-digital-wallet-app:transfer-service
+        image: hlaingminpaing/transfer-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3004

@@ -1,17 +1,20 @@
 stages:
   - test
+  - scan
   - build
-  - deploy
+  - update-manifests
 
 variables:
+  # Docker Hub repository prefix (your username)
+  DOCKERHUB_REPO_PREFIX: hlaingminpaing
   # Use the official Docker image.
   IMAGE: docker:24.0.5
   # Use the Docker-in-Docker driver.
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
-  # Define the image name prefix. This will be prepended with the service name.
-  # Example: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
-  IMAGE_NAME_PREFIX: $CI_REGISTRY_IMAGE
+  # Git user for committing manifest changes
+  GIT_USER_EMAIL: "gitlab-ci@example.com"
+  GIT_USER_NAME: "GitLab CI"
 
 # ==============================================================================
 # >> TEST STAGE <<
@@ -50,6 +53,68 @@ test-wallet-service:
     - cd services/wallet-service
 
 # ==============================================================================
+# >> SCAN STAGE <<
+# ==============================================================================
+
+.scan_template: &scan_definition
+  stage: scan
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0" # Disable shallow clone for accurate SonarQube analysis
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - echo "Scanning ${SERVICE_NAME}..."
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey="${CI_PROJECT_NAME}_${SERVICE_NAME}" \
+        -Dsonar.sources="." \
+        -Dsonar.host.url="${SONAR_HOST_URL}" \
+        -Dsonar.login="${SONAR_TOKEN}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+scan-frontend:
+  <<: *scan_definition
+  variables:
+    SERVICE_NAME: frontend
+  before_script:
+    - cd frontend
+
+scan-users-service:
+  <<: *scan_definition
+  variables:
+    SERVICE_NAME: users-service
+  before_script:
+    - cd services/users-service
+
+scan-transactions-service:
+  <<: *scan_definition
+  variables:
+    SERVICE_NAME: transactions-service
+  before_script:
+    - cd services/transactions-service
+
+scan-transfer-service:
+  <<: *scan_definition
+  variables:
+    SERVICE_NAME: transfer-service
+  before_script:
+    - cd services/transfer-service
+
+scan-wallet-service:
+  <<: *scan_definition
+  variables:
+    SERVICE_NAME: wallet-service
+  before_script:
+    - cd services/wallet-service
+
+# ==============================================================================
 # >> BUILD STAGE <<
 # ==============================================================================
 
@@ -60,101 +125,87 @@ test-wallet-service:
     - name: ${IMAGE}-dind
       alias: docker
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    # Login to Docker Hub
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
   script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
-    # The built image is not pushed here. It's pushed in the deploy stage.
+    - cd ${SERVICE_PATH}
+    # Build and push to Docker Hub
+    - docker build -t "${DOCKERHUB_REPO_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    - docker push "${DOCKERHUB_REPO_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}"
+    - docker tag "${DOCKERHUB_REPO_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" "${DOCKERHUB_REPO_PREFIX}/${SERVICE_NAME}:latest"
+    - docker push "${DOCKERHUB_REPO_PREFIX}/${SERVICE_NAME}:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 build-frontend:
   <<: *build_definition
   variables:
     SERVICE_NAME: frontend
+    SERVICE_PATH: frontend
   before_script:
-    - cd frontend
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-  script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    # Login to Docker Hub
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    # Replace New Relic placeholders
+    - sed -i "s/YOUR_LICENSE_KEY/${NEW_RELIC_LICENSE_KEY}/g" ${SERVICE_PATH}/index.html
+    - sed -i "s/YOUR_APPLICATION_ID/${NEW_RELIC_BROWSER_APP_ID}/g" ${SERVICE_PATH}/index.html
+    - sed -i "s/YOUR_BEACON_ID/${NEW_RELIC_BEACON_ID}/g" ${SERVICE_PATH}/index.html
+    - sed -i "s/YOUR_ERROR_BEACON_ID/${NEW_RELIC_ERROR_BEACON_ID}/g" ${SERVICE_PATH}/index.html
 
 build-users-service:
   <<: *build_definition
   variables:
     SERVICE_NAME: users-service
-  before_script:
-    - cd services/users-service
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-  script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    SERVICE_PATH: services/users-service
 
 build-transactions-service:
   <<: *build_definition
   variables:
     SERVICE_NAME: transactions-service
-  before_script:
-    - cd services/transactions-service
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-  script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    SERVICE_PATH: services/transactions-service
 
 build-transfer-service:
   <<: *build_definition
   variables:
     SERVICE_NAME: transfer-service
-  before_script:
-    - cd services/transfer-service
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-  script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
+    SERVICE_PATH: services/transfer-service
 
 build-wallet-service:
   <<: *build_definition
   variables:
     SERVICE_NAME: wallet-service
+    SERVICE_PATH: services/wallet-service
+
+# ==============================================================================
+# >> UPDATE MANIFESTS STAGE <<
+# ==============================================================================
+
+update-manifests:
+  stage: update-manifests
+  image: alpine:latest
   before_script:
-    - cd services/wallet-service
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - apk add --no-cache git sed
+    - git config --global user.email "${GIT_USER_EMAIL}"
+    - git config --global user.name "${GIT_USER_NAME}"
+    # The repo URL needs to include the deploy token for authentication
+    - git remote set-url origin "https://gitlab-ci-token:${GIT_DEPLOY_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    - git checkout $CI_COMMIT_BRANCH
   script:
-    - docker build -t "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" .
-
-# ==============================================================================
-# >> DEPLOY STAGE <<
-# ==============================================================================
-
-.deploy_template: &deploy_definition
-  stage: deploy
-  image: ${IMAGE}
-  services:
-    - name: ${IMAGE}-dind
-      alias: docker
+    - |
+      for service in frontend users-service transactions-service transfer-service wallet-service;
+      do
+        echo "Updating manifest for ${service}..."
+        # This sed command finds the 'image:' line and replaces the entire line
+        # with the new Docker Hub image and commit SHA tag.
+        sed -i "s|^.*image:.*$|        image: ${DOCKERHUB_REPO_PREFIX}/${service}:${CI_COMMIT_SHA}|g" "k8s/${service}.yml"
+      done
+    - git add k8s/*.yml
+    # Check if there are any changes to commit
+    - |
+      if git diff --staged --quiet; then
+        echo "No manifest changes to commit."
+      else
+        git commit -m "ci: Update image tags to ${CI_COMMIT_SHA} [skip ci]"
+        git push origin $CI_COMMIT_BRANCH
+      fi
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-  script:
-    - docker push "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}"
-    - docker tag "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:${CI_COMMIT_SHA}" "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:latest"
-    - docker push "${IMAGE_NAME_PREFIX}/${SERVICE_NAME}:latest"
-
-deploy-frontend:
-  <<: *deploy_definition
-  variables:
-    SERVICE_NAME: frontend
-
-deploy-users-service:
-  <<: *deploy_definition
-  variables:
-    SERVICE_NAME: users-service
-
-deploy-transactions-service:
-  <<: *deploy_definition
-  variables:
-    SERVICE_NAME: transactions-service
-
-deploy-transfer-service:
-  <<: *deploy_definition
-  variables:
-    SERVICE_NAME: transfer-service
-
-deploy-wallet-service:
-  <<: *deploy_definition
-  variables:
-    SERVICE_NAME: wallet-service
